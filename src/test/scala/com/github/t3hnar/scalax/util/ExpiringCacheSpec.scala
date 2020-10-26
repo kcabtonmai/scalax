@@ -1,7 +1,8 @@
 package com.github.t3hnar.scalax.util
 
 import org.specs2.mutable.Specification
-import java.util.concurrent.TimeUnit
+import java.util.concurrent.{ TimeUnit }
+
 import org.specs2.specification.Scope
 
 /**
@@ -42,6 +43,33 @@ class ExpiringCacheSpec extends Specification {
 
       cache.get(0) must beNone
       cache.map.size must eventually(beEqualTo(1))
+    }
+
+    "not return removed values " in new ExpiringCacheScope {
+      cache.map must haveSize(0)
+      cache.queryCount mustEqual 0
+
+      cache.put(0, "0")
+      cache.map must haveSize(1)
+
+      cache.remove(0)
+      cache.map.size must eventually(beEqualTo(0))
+    }
+
+    "get correct timestamp" in new ExpiringCacheScope {
+      override val cache = new ExpiringCache[Int, String](0, TimeUnit.MILLISECONDS, 5)
+      cache.put(0, "0")
+      cache.map must haveSize(1)
+      cache.get(0) must beNone
+      cache.cleanExpired()
+      cache.map must haveSize(1)
+    }
+
+    "clean expired values once query limit is reached" in new ExpiringCacheScope {
+      override val cache = new ExpiringCache[Int, String](100, TimeUnit.MILLISECONDS, 5)
+      cache.queryCount mustEqual 0
+      cache.put(0, "0")
+      cache.get(0) must eventually(beNone)
     }
 
   }
